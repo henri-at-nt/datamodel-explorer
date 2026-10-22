@@ -1,0 +1,20 @@
+{
+ "namespaces": [
+  {
+   "name": "other",
+   "objects": [
+    {
+     "name": "place",
+     "primaryKeyColumnName": "place_id",
+     "tables": [
+      {
+       "name": "places_dict"
+      }
+     ],
+     "objectFieldMappings": []
+    }
+   ],
+   "timeseries": []
+  }
+ ]
+}

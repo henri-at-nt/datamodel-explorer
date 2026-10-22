@@ -1,0 +1,107 @@
+{
+ "namespaces": [
+  {
+   "name": "demo",
+   "timeseries": [
+    {
+     "name": "visit",
+     "protobufMapping": {
+      "topicName": "demo_visit_topic"
+     },
+     "tables": [
+      {
+       "name": "visits_v",
+       "timeResolution": "punctual",
+       "ttlInDays": 31,
+       "storageType": "table"
+      },
+      {
+       "name": "visits_day_v",
+       "timeResolution": "1d",
+       "ttlInDays": 365
+      }
+     ],
+     "timeseriesFieldMappings": [
+      {
+       "dmName": "reason",
+       "storeName": "visit_reason",
+       "protobufMapping": {
+        "fullyQualifiedProtoPath": "visit/reason"
+       }
+      },
+      {
+       "dmName": "mood"
+      }
+     ],
+     "metricMappings": [
+      {
+       "dmName": "duration",
+       "storeName": "visit_duration"
+      }
+     ]
+    },
+    {
+     "name": "ghost_event",
+     "tables": [
+      {
+       "name": "ghosts_v",
+       "timeResolution": "5m"
+      }
+     ],
+     "timeseriesFieldMappings": []
+    }
+   ],
+   "objects": [
+    {
+     "name": "person",
+     "primaryKeyColumnName": "person_id",
+     "protobufMapping": {
+      "topicName": "demo_person_topic"
+     },
+     "tables": [
+      {
+       "name": "people_dict",
+       "storageType": "dictionary"
+      }
+     ],
+     "objectFieldMappings": [
+      {
+       "dmName": "name",
+       "storeName": "person_name"
+      }
+     ]
+    }
+   ],
+   "businessConfigObjects": [
+    {
+     "name": "catalog",
+     "table": "catalog_dict",
+     "storageType": "dictionary",
+     "primaryKeyColumnName": "catalog_id",
+     "protobufMapping": {
+      "topicName": "demo_catalog_topic"
+     },
+     "objectFieldMappings": [
+      {
+       "dmName": "name",
+       "storeName": "catalog_name"
+      }
+     ]
+    }
+   ],
+   "linkages": [
+    {
+     "name": "membership",
+     "tables": [
+      {
+       "name": "membership_v",
+       "timeResolution": "punctual",
+       "ttlInDays": 7
+      }
+     ],
+     "metricMappings": []
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,126 @@
+/** API shapes shared by the server and the web app. */
+
+export type TableKind = "timeseries" | "object" | "configObject" | "linkage";
+
+export interface FieldRec {
+  name: string;
+  type: string;
+  label: string;
+  description: string;
+  platforms: string;
+  role: "field" | "metric";
+  jsonPath?: string;
+}
+
+export interface TypeRec {
+  name: string;
+  kind: string;
+  description: string;
+  fields: FieldRec[];
+  structured: { name: string; typeName: string; target: string | null }[];
+}
+
+export interface StructuredRec {
+  name: string;
+  typeName: string;
+  target: string | null;
+  targetKind: string;
+  description: string;
+  label: string;
+  /** True for JSON-array collections on an object. */
+  collection?: boolean;
+}
+
+export interface Relation {
+  direction: "out" | "in";
+  via: "structured field" | "collection" | "object link" | "context";
+  label: string;
+  /** Table key in this namespace, "<namespace>::<key>" across namespaces, a type key, or null. */
+  target: string | null;
+  targetName: string;
+  targetNs?: string;
+  text: string;
+}
+
+export interface StoreTableRec {
+  name: string;
+  [attribute: string]: unknown;
+}
+
+export interface StoreColumn {
+  storeName: string;
+  dmRef: string;
+  proto: string;
+}
+
+export interface TableRec {
+  key: string;
+  kind: TableKind;
+  name: string;
+  collection: string;
+  label: string;
+  description: string;
+  meta: Record<string, string>;
+  fields: FieldRec[];
+  structured: StructuredRec[];
+  relations: Relation[];
+  store: { topic: string | null; tables: StoreTableRec[]; columns: StoreColumn[] };
+}
+
+export interface EnumRec {
+  name: string;
+  namespace: string;
+  values: { label: string; value: string; description: string }[];
+}
+
+/** One box of the store (ClickHouse) overview diagram. */
+export interface StoreEntity {
+  id: string;
+  title: string;
+  attrs: string[];
+}
+
+export interface StoreRelation {
+  from: string;
+  to: string;
+  label: string;
+}
+
+export interface StoreGraph {
+  entities: StoreEntity[];
+  relations: StoreRelation[];
+}
+
+export interface NamespaceDetail {
+  name: string;
+  tables: TableRec[];
+  types: Record<string, TypeRec>;
+  enums: Record<string, EnumRec>;
+  store: StoreGraph;
+}
+
+export interface NamespaceSummary {
+  name: string;
+  tables: { key: string; name: string; label: string; kind: TableKind }[];
+  storeEntities: number;
+  storeRelations: number;
+}
+
+export interface SearchHit {
+  type: "table" | "field" | "enum";
+  namespace: string;
+  /** Table to open (for enums: the first table that uses the enum, if any). */
+  tableKey: string | null;
+  title: string;
+  context: string;
+  snippet: string;
+}
+
+export interface HealthInfo {
+  ok: true;
+  contentDir: string;
+  fingerprint: string;
+  builtAt: string;
+  namespaces: number;
+  tables: number;
+}

@@ -1,0 +1,44 @@
+{
+ "namespaces": [
+  {
+   "name": "other",
+   "enumDataTypes": [
+    {
+     "name": "shape",
+     "values": [
+      {
+       "label": "round",
+       "value": "r",
+       "description": "Round."
+      }
+     ]
+    }
+   ],
+   "objects": [
+    {
+     "name": "place",
+     "collectionName": "places",
+     "identifier": "name",
+     "lastSeen": "last_seen",
+     "fields": [
+      {
+       "name": "name",
+       "dataType": "string/string",
+       "documentation": {
+        "label": "Name",
+        "description": "Place name.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Place",
+      "description": "A place that gets visited.",
+      "tooltipSections": {}
+     }
+    }
+   ],
+   "timeseries": []
+  }
+ ]
+}

@@ -1,0 +1,32 @@
+schema: spec-driven
+
+context: |
+  datamodel-explorer is a web app for exploring the Nexthink NQL data model and store model.
+  The model JSON is internal Nexthink content that lives in a separate repository; this repository
+  is personal and may be shared. Never copy model content (real table, field or enum names, or
+  descriptions) into specs, fixtures, tests or docs. Use made-up examples.
+  Specs describe observable behavior only. Technology choices belong in design.md.
+  Example data from a real tenant is out of scope until the example-data change is picked up;
+  when it is, fields flagged as personal data must be masked by default.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

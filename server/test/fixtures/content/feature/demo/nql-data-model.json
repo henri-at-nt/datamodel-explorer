@@ -1,0 +1,252 @@
+{
+ "namespaces": [
+  {
+   "name": "demo",
+   "enumDataTypes": [
+    {
+     "name": "mood",
+     "values": [
+      {
+       "label": "happy",
+       "value": "1",
+       "description": "Feeling good."
+      },
+      {
+       "label": "tired",
+       "value": "2",
+       "description": ""
+      }
+     ]
+    }
+   ],
+   "timeseriesTypes": [
+    {
+     "name": "weather",
+     "metrics": [
+      {
+       "name": "temperature",
+       "dataType": "numeric/float",
+       "documentation": {
+        "label": "Temperature",
+        "description": "Degrees at the time of the visit.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Weather",
+      "description": "Conditions during a visit.",
+      "tooltipSections": {}
+     }
+    }
+   ],
+   "types": [],
+   "jsonTypes": [
+    {
+     "name": "gadget",
+     "dataType": "string/string",
+     "jsonFields": [
+      {
+       "name": "model",
+       "dataType": "string/string",
+       "jsonPath": "modelName",
+       "platforms": "all",
+       "documentation": {
+        "label": "Gadget model",
+        "description": "The model of the gadget.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Gadget",
+      "description": "A gadget a person owns.",
+      "tooltipSections": {}
+     }
+    }
+   ],
+   "objects": [
+    {
+     "name": "person",
+     "collectionName": "people",
+     "identifier": "name",
+     "lastSeen": "last_seen",
+     "fields": [
+      {
+       "name": "name",
+       "dataType": "string/string",
+       "documentation": {
+        "label": "Name",
+        "description": "The person's name.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "collections": [
+      {
+       "name": "gadgets",
+       "typeNs": "demo",
+       "typeName": "gadget"
+      }
+     ],
+     "documentation": {
+      "label": "person",
+      "description": "A person who visits.",
+      "tooltipSections": {}
+     }
+    }
+   ],
+   "businessConfigObjects": [
+    {
+     "name": "catalog",
+     "collectionName": "catalogs",
+     "identifier": "name",
+     "fields": [
+      {
+       "name": "name",
+       "dataType": "string/string",
+       "documentation": {
+        "label": "Name",
+        "description": "Catalog name.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Catalog",
+      "description": "A configured catalog.",
+      "tooltipSections": {}
+     }
+    }
+   ],
+   "linkages": [
+    {
+     "name": "membership",
+     "collectionName": "memberships",
+     "objects": [
+      {
+       "namespace": "demo",
+       "name": "person"
+      },
+      {
+       "namespace": "demo",
+       "name": "catalog"
+      }
+     ],
+     "metrics": [],
+     "documentation": {
+      "label": "membership",
+      "description": "Which person belongs to which catalog.",
+      "tooltipSections": {}
+     }
+    }
+   ],
+   "timeseries": [
+    {
+     "name": "visit",
+     "collectionName": "visits",
+     "timestampField": {
+      "name": "time"
+     },
+     "entityField": {
+      "name": "entity_id"
+     },
+     "cardinalityMetric": "count",
+     "fields": [
+      {
+       "name": "reason",
+       "dataType": "string/string",
+       "platforms": "all",
+       "documentation": {
+        "label": "Reason",
+        "description": "Why the visit happened.",
+        "tooltipSections": {}
+       }
+      },
+      {
+       "name": "mood",
+       "dataType": "enumeration/demo/mood",
+       "documentation": {
+        "label": "Mood",
+        "description": "How the visitor felt.",
+        "tooltipSections": {}
+       }
+      },
+      {
+       "name": "shape",
+       "dataType": "enumeration/other/shape",
+       "documentation": {
+        "label": "Shape",
+        "description": "A shared enumeration.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "metrics": [
+      {
+       "name": "duration",
+       "dataType": "numeric/integer",
+       "documentation": {
+        "label": "Duration",
+        "description": "How long it lasted.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "structuredFields": [
+      {
+       "name": "weather",
+       "typeNs": "demo",
+       "typeName": "weather",
+       "documentation": {
+        "label": "Weather",
+        "description": "Conditions.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "objects": [
+      {
+       "namespace": "demo",
+       "name": "person"
+      },
+      {
+       "namespace": "other",
+       "name": "place"
+      }
+     ],
+     "contexts": [
+      {
+       "dmUri": "demo/season"
+      }
+     ],
+     "documentation": {
+      "label": "visit",
+      "description": "A visit by a person to a place.",
+      "tooltipSections": {}
+     }
+    },
+    {
+     "name": "ghost_event",
+     "collectionName": "ghost_events",
+     "fields": [
+      {
+       "name": "kind",
+       "dataType": "string/string",
+       "documentation": {
+        "label": "Kind",
+        "description": "What kind of ghost.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Ghost events",
+      "description": "An event with no declared feed.",
+      "tooltipSections": {}
+     }
+    }
+   ]
+  }
+ ]
+}
