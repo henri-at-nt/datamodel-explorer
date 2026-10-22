@@ -18,7 +18,9 @@ function fieldRec(f: Raw, role: "field" | "metric"): FieldRec {
   };
 }
 
-const KEY_PREFIX: Record<TableKind, string> = { timeseries: "ts_", object: "obj_", configObject: "cfg_", linkage: "link_" };
+const KEY_PREFIX: Record<Exclude<TableKind, "collection">, string> = {
+  timeseries: "ts_", object: "obj_", configObject: "cfg_", linkage: "link_",
+};
 
 const byName = (list: Raw[] | undefined): Map<string, Raw> => new Map((list ?? []).map((x) => [x.name, x]));
 
@@ -40,7 +42,7 @@ export function buildTables(
   const objects = byName(dm.objects);
   const configObjects = byName(dm.businessConfigObjects);
   const jsonTypes = byName(dm.jsonTypes);
-  const storeFor: Record<TableKind, Map<string, Raw>> = {
+  const storeFor: Record<Exclude<TableKind, "collection">, Map<string, Raw>> = {
     timeseries: byName(sm.timeseries),
     object: byName(sm.objects),
     configObject: byName(sm.businessConfigObjects),
@@ -86,15 +88,16 @@ export function buildTables(
     return [key, kind];
   };
 
-  const tablesSrc: [TableKind, Raw][] = [
-    ...(dm.timeseries ?? []).map((t: Raw) => ["timeseries", t] as [TableKind, Raw]),
-    ...(dm.objects ?? []).map((t: Raw) => ["object", t] as [TableKind, Raw]),
-    ...(dm.businessConfigObjects ?? []).map((t: Raw) => ["configObject", t] as [TableKind, Raw]),
-    ...(dm.linkages ?? []).map((t: Raw) => ["linkage", t] as [TableKind, Raw]),
+  type SrcKind = Exclude<TableKind, "collection">;
+  const tablesSrc: [SrcKind, Raw][] = [
+    ...(dm.timeseries ?? []).map((t: Raw) => ["timeseries", t] as [SrcKind, Raw]),
+    ...(dm.objects ?? []).map((t: Raw) => ["object", t] as [SrcKind, Raw]),
+    ...(dm.businessConfigObjects ?? []).map((t: Raw) => ["configObject", t] as [SrcKind, Raw]),
+    ...(dm.linkages ?? []).map((t: Raw) => ["linkage", t] as [SrcKind, Raw]),
   ];
 
   // Inverse object links: which timeseries and linkages reference each object.
-  const inbound = new Map<string, [string, TableKind, string][]>();
+  const inbound = new Map<string, [string, SrcKind, string][]>();
   for (const [kind, t] of tablesSrc) {
     if (kind !== "timeseries" && kind !== "linkage") continue;
     for (const o of t.objects ?? []) {
@@ -115,6 +118,7 @@ export function buildTables(
     ];
     const relations: Relation[] = [];
     const structured: StructuredRec[] = [];
+    const collectionTables: TableRec[] = [];
 
     for (const f of fields) {
       if (f.type.startsWith("enumeration/")) {
@@ -136,15 +140,32 @@ export function buildTables(
       });
     }
 
-    // Collections are JSON arrays stored on an object, one element per jsonType.
+    // Collections are JSON arrays stored on an object, one element per jsonType. Each also gets a table of its
+    // own, because NQL queries it like one (device.cpus).
     for (const c of t.collections ?? []) {
       const [tkey, tkind] = indexType(c.typeNs, c.typeName);
       structured.push({
         name: c.name, typeName: c.typeName, target: tkey, targetKind: tkind,
         collection: true, description: "", label: "",
       });
+      const elementType = tkey ? typeIndex[tkey] : undefined;
+      const parentKey = KEY_PREFIX[kind] + name;
+      const collectionKey = elementType ? `col_${name}_${c.name}` : null;
+      if (collectionKey && elementType) {
+        collectionTables.push({
+          key: collectionKey, kind: "collection", name: `${name}.${c.name}`, collection: c.name,
+          label: doc((tkind === "timeseriesType" ? tsTypes : tkind === "jsonType" ? jsonTypes : types).get(c.typeName)).label || c.typeName,
+          description: elementType.description, parent: parentKey, meta: {},
+          fields: elementType.fields.map((f) => ({ ...f })), structured: [],
+          relations: [{
+            direction: "in", via: "collection", label: c.name, target: parentKey, targetName: name,
+            text: `JSON array \`${c.name}\` on \`${name}\`: each element is one \`${c.typeName}\``,
+          }],
+          store: { topic: null, tables: [], columns: [] },
+        });
+      }
       relations.push({
-        direction: "out", via: "collection", label: c.name, target: tkey, targetName: c.typeName,
+        direction: "out", via: "collection", label: c.name, target: collectionKey ?? tkey, targetName: collectionKey ? `${name}.${c.name}` : c.typeName,
         text: `JSON array \`${c.name}\` of \`${c.typeName}\` (${tkind})`,
       });
     }
@@ -217,6 +238,7 @@ export function buildTables(
       label: doc(t).label ?? name, description: doc(t).description ?? "",
       meta, fields, structured, relations, store,
     });
+    tables.push(...collectionTables); // collections follow their parent
   }
 
   const enums: Record<string, EnumRec> = {};

@@ -43,7 +43,7 @@ export function buildModel(raw: RawNamespace[]): Model {
 
   const summaries: NamespaceSummary[] = namespaces.map((n) => ({
     name: n.name,
-    tables: n.tables.map((t) => ({ key: t.key, name: t.name, label: t.label, kind: t.kind })),
+    tables: n.tables.map((t) => ({ key: t.key, name: t.name, label: t.label, kind: t.kind, ...(t.parent ? { parent: t.parent } : {}) })),
     storeEntities: n.store.entities.length,
     storeRelations: n.store.relations.length,
   }));

@@ -53,7 +53,7 @@ export function Nav({ summaries }: { summaries: NamespaceSummary[] }) {
                 {ns.tables.map((t) => (
                   <Link
                     key={t.key}
-                    className="nav-link"
+                    className={t.parent ? "nav-link child" : "nav-link"}
                     to={tablePath(ns.name, t.name)}
                     aria-current={routeNs === ns.name && routeTable === t.name ? "page" : undefined}
                   >

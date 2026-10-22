@@ -150,6 +150,42 @@ if (cross) {
   check((await page.locator("nav a[aria-current='page']").count()) === 1, "the target table is marked in the expanded nav");
 }
 
+// Collections (JSON arrays on an object, such as device.cpus) are pages of their own.
+let collection = null;
+for (const ns of summaries) {
+  const t = ns.tables.find((x) => x.kind === "collection");
+  if (t) { collection = { ns: ns.name, ...t, parentTable: ns.tables.find((x) => x.key === t.parent) }; break; }
+}
+check(!!collection, "the model has at least one collection to test");
+if (collection) {
+  const parentNs = summaries.find((s) => s.name === collection.ns);
+  const idx = parentNs.tables.findIndex((x) => x.key === collection.key);
+  check(parentNs.tables[idx - 1]?.key === collection.parent || parentNs.tables[idx - 1]?.parent === collection.parent,
+        "the API lists a collection directly after its parent");
+  await page.goto(`${BASE}/${collection.ns}/${collection.name}`, { waitUntil: "load" });
+  await page.waitForSelector("h1");
+  const sub = await page.locator("p.sub").innerText();
+  check(sub.includes("Collection") && sub.includes("JSON array"), `collection header says what it is (${sub})`);
+  check((await page.locator("th", { hasText: "JSON path" }).count()) === 1, "collection fields show a JSON path column");
+  check((await page.locator("nav a.child").count()) >= 1, "nav indents collections under their parent");
+  check((await page.locator("nav a.child[aria-current='page']").count()) === 1, "the collection is marked in the nav");
+  const highlight = await page.locator("nav a[aria-current='page']").evaluate((el) => getComputedStyle(el).backgroundColor);
+  check(highlight !== "rgba(0, 0, 0, 0)" && highlight !== "transparent", `the current page is visibly highlighted in the nav (${highlight})`);
+  await page.waitForSelector(".reldiagram svg");
+  check((await page.locator("body").innerText()).includes("declares no table, column mapping or Kafka topic"), "storage says nothing is declared");
+  await page.locator("p.sub a.link").click();
+  await page.waitForFunction((n) => location.pathname.endsWith("/" + n), collection.parentTable.name);
+  check((await page.locator("h1").innerText()).length > 0, "the parent link opens the parent");
+  await page.locator("summary", { hasText: "As list" }).click();
+  check((await page.locator(`ul.rel a.link:text-is("${collection.name}")`).count()) >= 1, "the parent links to the collection");
+  await page.keyboard.press("/");
+  await page.keyboard.type(collection.name);
+  await page.waitForSelector(".search .result");
+  check((await page.locator(".search .result").first().locator(".kind").innerText()).toLowerCase() === "table", "search finds the collection by its NQL name first");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction((n) => decodeURIComponent(location.pathname).endsWith("/" + n), collection.name);
+}
+
 // Direct load and unknown addresses.
 const sample = summaries.find((s) => s.tables.length);
 await page.goto(`${BASE}/${sample.name}/${sample.tables[0].name}`, { waitUntil: "load" });

@@ -1,6 +1,6 @@
 /** API shapes shared by the server and the web app. */
 
-export type TableKind = "timeseries" | "object" | "configObject" | "linkage";
+export type TableKind = "timeseries" | "object" | "configObject" | "linkage" | "collection";
 
 export interface FieldRec {
   name: string;
@@ -60,6 +60,8 @@ export interface TableRec {
   collection: string;
   label: string;
   description: string;
+  /** For a collection: the key of the object it is a JSON array on. */
+  parent?: string;
   meta: Record<string, string>;
   fields: FieldRec[];
   structured: StructuredRec[];
@@ -101,7 +103,7 @@ export interface NamespaceDetail {
 
 export interface NamespaceSummary {
   name: string;
-  tables: { key: string; name: string; label: string; kind: TableKind }[];
+  tables: { key: string; name: string; label: string; kind: TableKind; parent?: string }[];
   storeEntities: number;
   storeRelations: number;
 }

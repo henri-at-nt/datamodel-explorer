@@ -5,10 +5,32 @@ const demo = () => fixtureModel().byName.get("demo")!;
 const table = (key: string) => demo().tables.find((t) => t.key === key)!;
 
 describe("tables", () => {
-  it("includes timeseries, objects, config objects and linkages", () => {
+  it("includes timeseries, objects, collections, config objects and linkages", () => {
     expect(demo().tables.map((t) => `${t.kind}:${t.key}`)).toEqual([
-      "timeseries:ts_visit", "timeseries:ts_ghost_event", "object:obj_person", "configObject:cfg_catalog", "linkage:link_membership",
+      "timeseries:ts_visit", "timeseries:ts_ghost_event", "object:obj_person", "collection:col_person_gadgets",
+      "configObject:cfg_catalog", "linkage:link_membership",
     ]);
+  });
+
+  it("gives each collection a table of its own, named the way NQL names it", () => {
+    const gadgets = table("col_person_gadgets");
+    expect(gadgets).toMatchObject({
+      kind: "collection", name: "person.gadgets", collection: "gadgets", label: "Gadget", parent: "obj_person",
+      description: "A gadget a person owns.",
+    });
+    expect(gadgets.fields).toEqual([expect.objectContaining({ name: "model", jsonPath: "modelName", role: "field" })]);
+  });
+
+  it("links a collection back to its parent and the parent to the collection", () => {
+    expect(table("col_person_gadgets").relations).toEqual([
+      expect.objectContaining({ direction: "in", via: "collection", target: "obj_person", targetName: "person" }),
+    ]);
+    const out = table("obj_person").relations.find((r) => r.via === "collection")!;
+    expect(out).toMatchObject({ direction: "out", target: "col_person_gadgets", targetName: "person.gadgets" });
+  });
+
+  it("declares no storage for a collection", () => {
+    expect(table("col_person_gadgets").store).toEqual({ topic: null, tables: [], columns: [] });
   });
 
   it("lists fields and metrics with their role", () => {

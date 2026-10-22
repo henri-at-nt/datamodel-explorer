@@ -27,12 +27,13 @@ nav button, nav a.nav-link {
   padding: 6px 10px; border-radius: 6px; cursor: pointer; font: inherit; text-decoration: none;
 }
 nav button:hover, nav a.nav-link:hover { background: var(--hover); }
-nav [aria-current="page"], nav [aria-current="true"] { background: var(--nav-active); color: #fff; }
+nav a.nav-link[aria-current="page"], nav button[aria-current="true"] { background: var(--nav-active); color: #fff; }
 nav .ns-row { display: flex; align-items: center; gap: 2px; }
 nav .caret { flex: 0 0 26px; width: 26px; padding: 6px 0; text-align: center; font-size: 12px; color: var(--muted); }
 nav .ns { font-weight: 600; flex: 1; min-width: 0; }
 nav .tbl-list { margin: 2px 0 8px 26px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 6px; }
 nav .tbl-list a.nav-link { font-size: 13px; padding: 4px 10px; }
+nav .tbl-list a.nav-link.child { margin-left: 14px; padding: 3px 10px; font-size: 12.5px; }
 nav .home { font-weight: 700; color: #fff; margin-bottom: 4px; }
 
 .search { position: relative; margin: 4px 0 6px; }

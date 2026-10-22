@@ -8,6 +8,14 @@ describe("model", () => {
     expect(summaries[0].tables[0]).toEqual({ key: "ts_visit", name: "visit", label: "visit", kind: "timeseries" });
     expect(summaries[0].storeEntities).toBeGreaterThan(0);
   });
+
+  it("lists a collection directly after its parent and names the parent", () => {
+    const keys = fixtureModel().summaries[0].tables.map((t) => t.key);
+    expect(keys.indexOf("col_person_gadgets")).toBe(keys.indexOf("obj_person") + 1);
+    expect(fixtureModel().summaries[0].tables.find((t) => t.key === "col_person_gadgets")).toMatchObject({
+      kind: "collection", parent: "obj_person", name: "person.gadgets",
+    });
+  });
 });
 
 describe("search", () => {
@@ -24,6 +32,10 @@ describe("search", () => {
   it("ranks an exact table match before fields and enums", () => {
     const hits = search("visit");
     expect(hits[0]).toMatchObject({ type: "table", title: "visit", tableKey: "ts_visit", namespace: "demo" });
+  });
+
+  it("finds a collection by its NQL name before anything else", () => {
+    expect(search("person.gadgets")[0]).toMatchObject({ type: "table", tableKey: "col_person_gadgets", namespace: "demo" });
   });
 
   it("finds fields by name and opens the owning table", () => {

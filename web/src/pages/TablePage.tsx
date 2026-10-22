@@ -5,7 +5,7 @@ import { NotFound } from "../App";
 import { fetchNamespace } from "../api";
 import { RelationDiagram } from "../components/RelationDiagram";
 import { useDocumentTitle, useLoad } from "../hooks";
-import { hrefForTarget } from "../links";
+import { hrefForTarget, tablePath } from "../links";
 
 type Filter = null | "fields" | "metrics" | "structured" | "relations" | "storage";
 
@@ -14,7 +14,7 @@ const FILTER_LABELS: Record<Exclude<Filter, null>, string> = {
   relations: "relationships", storage: "ClickHouse tables",
 };
 const KIND_LABELS: Record<TableRec["kind"], string> = {
-  timeseries: "Timeseries", object: "Object", configObject: "Config object", linkage: "Linkage",
+  timeseries: "Timeseries", object: "Object", configObject: "Config object", linkage: "Linkage", collection: "Collection",
 };
 
 const dash = (s: ReactNode) => (s === undefined || s === null || s === "" ? <span className="muted">—</span> : s);
@@ -57,6 +57,8 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
   if (t.meta.cardinalityMetric) metaParts.push(<>cardinality metric: <code>{t.meta.cardinalityMetric}</code></>);
   if (t.meta.lastSeen) metaParts.push(<>last seen: <code>{t.meta.lastSeen}</code></>);
 
+  const parent = t.parent ? summaries.find((s) => s.name === ns)?.tables.find((x) => x.key === t.parent) : undefined;
+  const showJsonPath = fieldRows.some((f) => f.jsonPath);
   const enumNames = [...new Set(t.fields.filter((f) => f.type.startsWith("enumeration/")).map((f) => f.type))];
 
   const card = (cat: Exclude<Filter, null>, n: number, label: string) => (
@@ -70,7 +72,10 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
     <>
       <h1>{titleOf(t)}</h1>
       <p className="sub">
-        {KIND_LABELS[t.kind]} · table <code>{t.name}</code> · collection <code>{t.collection}</code>
+        {KIND_LABELS[t.kind]} · table <code>{t.name}</code>
+        {parent
+          ? <> · JSON array <code>{t.collection}</code> on <Link className="link" to={tablePath(ns, parent.name)}>{titleOf(parent)}</Link></>
+          : <> · collection <code>{t.collection}</code></>}
         {metaParts.map((m, i) => <span key={i}> · {m}</span>)}
       </p>
       <p>{t.description || <span className="muted">No description in the model.</span>}</p>
@@ -94,15 +99,16 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
           <h2 className="sec">{filter === "metrics" ? "Metrics" : "Fields"}</h2>
           <div className="tblwrap">
             <table className="fields">
-              <thead><tr><th>Name</th><th>Label</th><th>Type</th><th>Platforms</th><th>Description</th></tr></thead>
+              <thead><tr><th>Name</th><th>Label</th><th>Type</th><th>Platforms</th>{showJsonPath && <th>JSON path</th>}<th>Description</th></tr></thead>
               <tbody>
-                {fieldRows.length === 0 && <tr><td colSpan={5} className="muted">None in this category</td></tr>}
+                {fieldRows.length === 0 && <tr><td colSpan={showJsonPath ? 6 : 5} className="muted">None in this category</td></tr>}
                 {fieldRows.map((f) => (
                   <tr key={`${f.role}:${f.name}`}>
                     <td><code>{f.name}</code>{f.role === "metric" && <span className="badge">metric</span>}</td>
                     <td>{dash(f.label)}</td>
                     <td className="type"><code>{f.type}</code></td>
                     <td>{dash(f.platforms)}</td>
+                    {showJsonPath && <td>{f.jsonPath ? <code>{f.jsonPath}</code> : dash("")}</td>}
                     <td className="desc">{dash(f.description)}</td>
                   </tr>
                 ))}
@@ -164,9 +170,11 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
         <>
           <h2 className="sec">Storage (ClickHouse)</h2>
           <p>
-            {t.store.topic
-              ? <>Kafka topic: <code>{t.store.topic}</code></>
-              : <span className="muted">No feed declared: the store model has no Kafka topic for this table.</span>}
+            {t.kind === "collection"
+              ? <span className="muted">The store model declares no table, column mapping or Kafka topic for this collection.</span>
+              : t.store.topic
+                ? <>Kafka topic: <code>{t.store.topic}</code></>
+                : <span className="muted">No feed declared: the store model has no Kafka topic for this table.</span>}
           </p>
           {t.store.tables.length > 0 && (
             <div className="tblwrap">
