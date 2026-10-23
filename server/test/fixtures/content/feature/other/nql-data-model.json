@@ -38,7 +38,34 @@
      }
     }
    ],
-   "timeseries": []
+   "timeseries": [
+    {
+     "name": "sighting",
+     "collectionName": "sightings",
+     "fields": [
+      {
+       "name": "note",
+       "dataType": "string/string",
+       "documentation": {
+        "label": "Note",
+        "description": "What was seen.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "businessConfigObjects": [
+      {
+       "namespace": "demo",
+       "name": "catalog"
+      }
+     ],
+     "documentation": {
+      "label": "Sighting",
+      "description": "Something seen in a catalog.",
+      "tooltipSections": {}
+     }
+    }
+   ]
   }
  ]
 }

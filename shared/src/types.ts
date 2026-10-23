@@ -33,7 +33,7 @@ export interface StructuredRec {
 
 export interface Relation {
   direction: "out" | "in";
-  via: "structured field" | "collection" | "object link" | "context";
+  via: "structured field" | "collection" | "object link" | "parent object" | "context";
   label: string;
   /** Table key in this namespace, "<namespace>::<key>" across namespaces, a type key, or null. */
   target: string | null;

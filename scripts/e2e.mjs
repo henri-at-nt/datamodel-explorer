@@ -186,6 +186,87 @@ if (collection) {
   await page.waitForFunction((n) => decodeURIComponent(location.pathname).endsWith("/" + n), collection.name);
 }
 
+// Links to configured objects, links from both ends across namespaces, parents, and the diagram cap.
+const allDetails = [];
+for (const ns of summaries) allDetails.push({ ns: ns.name, d: await (await fetch(`${BASE}/api/namespaces/${ns.name}`)).json() });
+const tableOf = (nsName, key) => allDetails.find((x) => x.ns === nsName)?.d.tables.find((t) => t.key === key);
+const resolveRel = (nsName, r) => {
+  const [tns, key] = r.target.includes("::") ? r.target.split("::") : [nsName, r.target];
+  return { ns: tns, table: tableOf(tns, key) };
+};
+
+// A link from a timeseries to a configured object appears on both pages.
+let configLink = null;
+for (const { ns, d } of allDetails) {
+  for (const t of d.tables) {
+    const r = t.relations.find((x) => x.direction === "out" && x.via === "object link" && x.target && resolveRel(ns, x).table?.kind === "configObject");
+    if (r) { configLink = { ns, t, r, target: resolveRel(ns, r) }; break; }
+  }
+  if (configLink) break;
+}
+check(!!configLink, "the model links at least one table to a configured object");
+if (configLink) {
+  const back = configLink.target.table.relations.find((x) => x.direction === "in" && x.via === "object link" && x.targetName.endsWith(configLink.t.name));
+  check(!!back, `${configLink.target.table.name} lists ${configLink.t.name} as an incoming link`);
+  await page.goto(`${BASE}/${configLink.ns}/${configLink.t.name}`, { waitUntil: "load" });
+  await page.waitForSelector(".reldiagram svg");
+  await page.locator("summary", { hasText: "As list" }).click();
+  check((await page.locator(`ul.rel a.link:text-is("${configLink.r.targetName}")`).count()) >= 1, "the table page links to its configured object");
+  check((await page.locator("ul.rel").innerText()).includes("config object"), "the explanation names it a config object");
+}
+
+// Incoming links across namespaces are listed with the namespace in the name.
+let crossIn = null;
+for (const { ns, d } of allDetails) {
+  for (const t of d.tables) {
+    const r = t.relations.find((x) => x.direction === "in" && x.target?.includes("::"));
+    if (r) { crossIn = { ns, t, r }; break; }
+  }
+  if (crossIn) break;
+}
+check(!!crossIn, "the model has an incoming link from another namespace");
+if (crossIn) {
+  check(crossIn.r.targetName.includes("."), `cross-namespace incoming name carries the namespace (${crossIn.r.targetName})`);
+  await page.goto(`${BASE}/${crossIn.ns}/${crossIn.t.name}`, { waitUntil: "load" });
+  await page.waitForSelector(".reldiagram svg");
+  await page.locator("summary", { hasText: "As list" }).click();
+  await page.locator(`ul.rel a.link:text-is("${crossIn.r.targetName}")`).first().click();
+  const [targetNs] = crossIn.r.target.split("::");
+  await page.waitForFunction((n) => location.pathname.startsWith(`/${n}/`), targetNs);
+  check(true, "");
+}
+
+// Parents.
+const withParent = allDetails.flatMap(({ ns, d }) => d.tables.filter((t) => t.relations.some((r) => r.via === "parent object" && r.direction === "out")).map((t) => ({ ns, t })))[0];
+if (withParent) {
+  await page.goto(`${BASE}/${withParent.ns}/${withParent.t.name}`, { waitUntil: "load" });
+  await page.waitForSelector(".reldiagram svg");
+  await page.locator("summary", { hasText: "As list" }).click();
+  check((await page.locator("ul.rel").innerText()).includes("parent object"), "the child lists its parent");
+  const parentName = withParent.t.relations.find((r) => r.via === "parent object").targetName;
+  await page.locator(`ul.rel a.link:text-is("${parentName}")`).first().click();
+  await page.waitForFunction((n) => decodeURIComponent(location.pathname).endsWith("/" + n), parentName);
+  await page.locator("summary", { hasText: "As list" }).click();
+  check((await page.locator("ul.rel").innerText()).includes(withParent.t.name), "the parent lists its child");
+}
+
+// The diagram draws at most twelve incoming relations and summarises the rest.
+const busiest = allDetails.flatMap(({ ns, d }) => d.tables.map((t) => ({ ns, t, n: t.relations.filter((r) => r.direction === "in").length }))).sort((a, b) => b.n - a.n)[0];
+if (busiest.n > 12) {
+  await page.goto(`${BASE}/${busiest.ns}/${busiest.t.name}`, { waitUntil: "load" });
+  await page.waitForSelector(".reldiagram svg");
+  const text = await page.locator(".reldiagram").innerText();
+  check(text.includes(`and ${busiest.n - 12} more`), `${busiest.t.name}: the diagram summarises ${busiest.n - 12} incoming relations (${busiest.n} in total)`);
+  const crossCount = busiest.t.relations.filter((r) => r.direction === "in" && r.target?.includes("::")).length;
+  if (crossCount) {
+    const shown = await page.locator(".reldiagram .nodeLabel").allInnerTexts();
+    check(shown.some((t) => /\(\w+\)$/.test(t.trim())), "diagram boxes for other namespaces name their namespace");
+    check(new Set(shown).size === shown.length, "no two boxes in the diagram share a label");
+  }
+  await page.locator("summary", { hasText: "As list" }).click();
+  check((await page.locator('details:has(> summary:has-text("As list")) ul.rel > li').count()) === busiest.t.relations.length, "the list still shows every relation");
+}
+
 // Direct load and unknown addresses.
 const sample = summaries.find((s) => s.tables.length);
 await page.goto(`${BASE}/${sample.name}/${sample.tables[0].name}`, { waitUntil: "load" });

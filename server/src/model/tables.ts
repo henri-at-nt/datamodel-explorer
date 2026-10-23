@@ -96,17 +96,6 @@ export function buildTables(
     ...(dm.linkages ?? []).map((t: Raw) => ["linkage", t] as [SrcKind, Raw]),
   ];
 
-  // Inverse object links: which timeseries and linkages reference each object.
-  const inbound = new Map<string, [string, SrcKind, string][]>();
-  for (const [kind, t] of tablesSrc) {
-    if (kind !== "timeseries" && kind !== "linkage") continue;
-    for (const o of t.objects ?? []) {
-      if (o.namespace !== ns) continue;
-      if (!inbound.has(o.name)) inbound.set(o.name, []);
-      inbound.get(o.name)!.push([KEY_PREFIX[kind] + t.name, kind, t.name]);
-    }
-  }
-
   const enumUsed = new Map<string, Set<string>>();
   const tables: TableRec[] = [];
 
@@ -170,13 +159,19 @@ export function buildTables(
       });
     }
 
+    // A table links to plain objects (device, user) and to configured objects (campaign, application).
+    // The incoming side of every link is added once all namespaces are built, because it can cross namespaces.
     if (kind === "timeseries" || kind === "linkage") {
-      for (const o of t.objects ?? []) {
+      const links: [Raw, string][] = [
+        ...(t.objects ?? []).map((o: Raw) => [o, "object"] as [Raw, string]),
+        ...(t.businessConfigObjects ?? []).map((o: Raw) => [o, "config object"] as [Raw, string]),
+      ];
+      for (const [o, what] of links) {
         relations.push({
           direction: "out", via: "object link", label: o.name, target: objectTarget(o.namespace, o.name),
           targetName: o.name, targetNs: o.namespace,
           text: kind === "timeseries"
-            ? `Each row links to one \`${o.name}\` object (${o.namespace})`
+            ? `Each row links to one \`${o.name}\` ${what} (${o.namespace})`
             : `Each link row relates a \`${o.name}\` (${o.namespace}) to the other linked objects`,
         });
       }
@@ -190,15 +185,11 @@ export function buildTables(
       }
     }
 
-    if (kind === "object" || kind === "configObject") {
-      for (const [srcKey, srcKind, srcName] of inbound.get(name) ?? []) {
-        relations.push({
-          direction: "in", via: "object link", label: srcName, target: srcKey, targetName: srcName,
-          text: srcKind === "timeseries"
-            ? `Referenced by timeseries \`${srcName}\`: each of its rows links to one \`${name}\``
-            : `Referenced by linkage \`${srcName}\``,
-        });
-      }
+    if (kind === "configObject" && t.parentObjectName) {
+      relations.push({
+        direction: "out", via: "parent object", label: "parent", target: objectTarget(ns, t.parentObjectName),
+        targetName: t.parentObjectName, targetNs: ns, text: `Child of the \`${t.parentObjectName}\` object`,
+      });
     }
 
     // Storage (ClickHouse) side of this table.

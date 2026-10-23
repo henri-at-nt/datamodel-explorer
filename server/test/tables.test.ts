@@ -8,7 +8,7 @@ describe("tables", () => {
   it("includes timeseries, objects, collections, config objects and linkages", () => {
     expect(demo().tables.map((t) => `${t.kind}:${t.key}`)).toEqual([
       "timeseries:ts_visit", "timeseries:ts_ghost_event", "object:obj_person", "collection:col_person_gadgets",
-      "configObject:cfg_catalog", "linkage:link_membership",
+      "configObject:cfg_catalog", "configObject:cfg_shelf", "linkage:link_membership",
     ]);
   });
 
@@ -56,10 +56,39 @@ describe("tables", () => {
   it("adds outgoing and incoming object links", () => {
     const visit = table("ts_visit");
     expect(visit.relations.map((r) => `${r.direction}:${r.via}:${r.targetName}`)).toEqual([
-      "out:structured field:weather", "out:object link:person", "out:object link:place", "out:context:demo/season",
+      "out:structured field:weather", "out:object link:person", "out:object link:place", "out:object link:catalog",
+      "out:context:demo/season",
     ]);
     const person = table("obj_person");
     expect(person.relations.filter((r) => r.direction === "in").map((r) => r.target)).toEqual(["ts_visit", "link_membership"]);
+  });
+
+  it("reports links to configured objects like any other object link", () => {
+    const link = table("ts_visit").relations.find((r) => r.targetName === "catalog")!;
+    expect(link).toMatchObject({ direction: "out", via: "object link", target: "cfg_catalog" });
+    expect(link.text).toContain("config object");
+  });
+
+  it("lists, on a configured object, everything that links to it, including other namespaces", () => {
+    const incoming = table("cfg_catalog").relations.filter((r) => r.direction === "in").map((r) => `${r.via}:${r.targetName}:${r.target}`);
+    expect(incoming).toEqual([
+      "object link:visit:ts_visit", "parent object:shelf:cfg_shelf", "object link:membership:link_membership",
+      "object link:other.sighting:other::ts_sighting",
+    ]);
+  });
+
+  it("reports the parent of a configured object on both ends", () => {
+    expect(table("cfg_shelf").relations).toEqual([
+      expect.objectContaining({ direction: "out", via: "parent object", target: "cfg_catalog", targetName: "catalog" }),
+    ]);
+    expect(table("cfg_catalog").relations.find((r) => r.via === "parent object")).toMatchObject({ direction: "in", label: "child" });
+  });
+
+  it("reports incoming links in another namespace with the namespace in the name", () => {
+    const place = fixtureModel().byName.get("other")!.tables.find((t) => t.key === "obj_place")!;
+    expect(place.relations).toEqual([
+      expect.objectContaining({ direction: "in", via: "object link", target: "demo::ts_visit", targetName: "demo.visit" }),
+    ]);
   });
 
   it("resolves object links into another namespace", () => {

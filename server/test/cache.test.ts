@@ -54,7 +54,7 @@ describe("model cache", () => {
 
   it("reports counts and a content hash", () => {
     const { cache } = setup();
-    expect(cache.info()).toMatchObject({ ok: true, namespaces: 2, tables: 7 });
+    expect(cache.info()).toMatchObject({ ok: true, namespaces: 2, tables: 9 });
     expect(cache.info().fingerprint).toMatch(/^[0-9a-f]{64}$/);
   });
 });

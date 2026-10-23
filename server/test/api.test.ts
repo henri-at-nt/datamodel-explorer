@@ -13,7 +13,7 @@ describe("api", () => {
     const app = await buildApp({ cache });
     const res = await app.inject("/api/health");
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ ok: true, namespaces: 2, tables: 7 });
+    expect(res.json()).toMatchObject({ ok: true, namespaces: 2, tables: 9 });
   });
 
   it("lists namespaces", async () => {
@@ -24,7 +24,7 @@ describe("api", () => {
   it("returns one namespace in full", async () => {
     const app = await buildApp({ cache });
     const body = (await app.inject("/api/namespaces/demo")).json();
-    expect(body.tables).toHaveLength(6);
+    expect(body.tables).toHaveLength(7);
     expect(Object.keys(body.types)).toEqual(expect.arrayContaining(["type_ts_weather", "json_gadget"]));
     expect(body.store.entities.length).toBeGreaterThan(5);
   });

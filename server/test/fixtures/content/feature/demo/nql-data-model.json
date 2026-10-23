@@ -117,6 +117,28 @@
       "description": "A configured catalog.",
       "tooltipSections": {}
      }
+    },
+    {
+     "name": "shelf",
+     "collectionName": "shelves",
+     "parentObjectName": "catalog",
+     "identifier": "name",
+     "fields": [
+      {
+       "name": "name",
+       "dataType": "string/string",
+       "documentation": {
+        "label": "Name",
+        "description": "Shelf name.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Shelf",
+      "description": "A shelf inside a catalog.",
+      "tooltipSections": {}
+     }
     }
    ],
    "linkages": [
@@ -224,7 +246,13 @@
       "label": "visit",
       "description": "A visit by a person to a place.",
       "tooltipSections": {}
-     }
+     },
+     "businessConfigObjects": [
+      {
+       "namespace": "demo",
+       "name": "catalog"
+      }
+     ]
     },
     {
      "name": "ghost_event",

@@ -1,4 +1,4 @@
-import type { NamespaceDetail, NamespaceSummary, SearchHit, TableRec } from "@dme/shared";
+import type { NamespaceDetail, NamespaceSummary, Relation, SearchHit, TableRec } from "@dme/shared";
 import { buildStoreGraph } from "./store";
 import { buildTables } from "./tables";
 import type { Raw, RawNamespace } from "./raw";
@@ -40,6 +40,33 @@ export function buildModel(raw: RawNamespace[]): Model {
       }
     }
   }
+
+  // The incoming side of every object link and parent link, so a table shows what points at it. This needs all
+  // namespaces, because links cross them. Collected first so no relation list changes while it is being read.
+  const incoming: [TableRec, Relation][] = [];
+  for (const ns of namespaces) {
+    for (const t of ns.tables) {
+      for (const r of t.relations) {
+        if (r.direction !== "out" || (r.via !== "object link" && r.via !== "parent object") || !r.target) continue;
+        const [targetNs, key] = r.target.includes("::") ? r.target.split("::") : [ns.name, r.target];
+        const target = byName.get(targetNs)?.tables.find((x) => x.key === key);
+        if (!target) continue;
+        const sameNs = targetNs === ns.name;
+        const name = sameNs ? t.name : `${ns.name}.${t.name}`;
+        const text =
+          r.via === "parent object"
+            ? `Parent of the \`${name}\` object`
+            : t.kind === "linkage"
+              ? `Referenced by linkage \`${name}\``
+              : `Referenced by timeseries \`${name}\`: each of its rows links to one \`${target.name}\``;
+        incoming.push([target, {
+          direction: "in", via: r.via, label: r.via === "parent object" ? "child" : name,
+          target: sameNs ? t.key : `${ns.name}::${t.key}`, targetName: name, text,
+        }]);
+      }
+    }
+  }
+  for (const [target, relation] of incoming) target.relations.push(relation);
 
   const summaries: NamespaceSummary[] = namespaces.map((n) => ({
     name: n.name,

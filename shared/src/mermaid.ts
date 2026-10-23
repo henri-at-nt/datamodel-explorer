@@ -17,6 +17,9 @@ export function storeErSource(store: StoreGraph): string {
   return out.join("\n");
 }
 
+/** The diagram draws this many incoming relations; the rest are summarised in one box (the list shows all). */
+export const MAX_INCOMING_IN_DIAGRAM = 12;
+
 /**
  * Mermaid flowchart (top to bottom) of one table and everything it relates to.
  * `lookup` resolves a relation target ("key" or "namespace::key") to a table, when it is one.
@@ -38,17 +41,25 @@ export function relationFlowSource(
   const center = nid(t.key);
   declare(center, titleOf(t), "table");
 
+  let incomingDrawn = 0;
+  let incomingSkipped = 0;
   t.relations.forEach((r, i) => {
-    const target = r.target ? lookup(r.target) : undefined;
+    if (r.direction === "in" && ++incomingDrawn > MAX_INCOMING_IN_DIAGRAM) {
+      incomingSkipped++;
+      return;
+    }
+    const rt = r.target;
+    const target = rt ? lookup(rt) : undefined;
     let id: string;
     let shape: "table" | "type" | "external";
     let label: string;
-    if (target) {
-      id = nid(r.target as string);
+    if (rt && target) {
+      id = nid(rt);
       shape = "table";
-      label = titleOf(target);
-    } else if (r.target) {
-      id = nid(r.target);
+      // Other namespaces can have tables with the same title ("Event"), so say which one.
+      label = rt.includes("::") ? `${titleOf(target)} (${rt.split("::")[0]})` : titleOf(target);
+    } else if (rt) {
+      id = nid(rt);
       shape = "type";
       label = r.targetName;
     } else {
@@ -63,6 +74,12 @@ export function relationFlowSource(
     else if (r.via === "context") lines.push(`    ${center} -.->|"${edge}"| ${id}`);
     else lines.push(`    ${center} -->|"${edge}"| ${id}`);
   });
+
+  if (incomingSkipped > 0) {
+    const more = nid("more_incoming");
+    declare(more, `… and ${incomingSkipped} more ${incomingSkipped === 1 ? "table" : "tables"}`, "external");
+    lines.push(`    ${more} -->|"see the list"| ${center}`);
+  }
 
   lines.push("    classDef focus fill:#3b82f6,color:#fff,stroke:#1d4ed8");
   lines.push(`    class ${center} focus`);
