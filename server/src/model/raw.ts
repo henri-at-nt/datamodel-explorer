@@ -7,6 +7,8 @@ export type Raw = Record<string, any>;
 
 export interface RawNamespace {
   name: string;
+  /** The model folders this namespace was built from (more than one when a namespace is split across folders). */
+  sources: string[];
   /** nql-data-model.json: the product-facing tables, fields and enums. */
   dm: Raw;
   /** nql-store-model.json: the binding to Kafka topics and ClickHouse tables. */
@@ -54,15 +56,44 @@ export function fingerprintFiles(files: string[]): string {
 
 const readNamespace = (path: string): Raw => JSON.parse(readFileSync(path, "utf-8")).namespaces[0] ?? {};
 
+/** Joins the parts of one namespace: lists are concatenated, other values come from the first part that has them. */
+function mergeParts(parts: Raw[]): Raw {
+  const merged: Raw = {};
+  for (const part of parts) {
+    for (const [key, value] of Object.entries(part)) {
+      if (Array.isArray(value)) merged[key] = [...(merged[key] ?? []), ...value];
+      else if (!(key in merged)) merged[key] = value;
+    }
+  }
+  return merged;
+}
+
 export function loadRaw(contentDir: string): RawModel {
   const feature = join(contentDir, "feature");
-  const out: RawNamespace[] = [];
-  for (const name of readdirSync(feature).sort()) {
-    const dmPath = join(feature, name, DATA_MODEL);
+
+  // A namespace is the name declared inside the files, not the folder name: a few folders add tables to
+  // another folder's namespace. Folders that declare the same name are one namespace.
+  const folders = new Map<string, { folder: string; dm: Raw; sm: Raw }[]>();
+  for (const folder of readdirSync(feature).sort()) {
+    const dmPath = join(feature, folder, DATA_MODEL);
     if (!existsSync(dmPath)) continue;
-    const smPath = join(feature, name, STORE_MODEL);
-    out.push({ name, dm: readNamespace(dmPath), sm: existsSync(smPath) ? readNamespace(smPath) : {} });
+    const dm = readNamespace(dmPath);
+    const smPath = join(feature, folder, STORE_MODEL);
+    const name: string = dm.name || folder;
+    if (!folders.has(name)) folders.set(name, []);
+    folders.get(name)!.push({ folder, dm, sm: existsSync(smPath) ? readNamespace(smPath) : {} });
   }
+
+  const out: RawNamespace[] = [...folders].map(([name, parts]) => {
+    // The folder named like the namespace comes first: it holds the description and most of the content.
+    parts.sort((a, b) => Number(b.folder === name) - Number(a.folder === name));
+    return {
+      name,
+      sources: parts.map((p) => p.folder),
+      dm: mergeParts(parts.map((p) => p.dm)),
+      sm: mergeParts(parts.map((p) => p.sm)),
+    };
+  });
   const commonPath = join(contentDir, "common", DATA_MODEL);
   const context = existsSync(commonPath) ? JSON.parse(readFileSync(commonPath, "utf-8")).context : undefined;
   return { namespaces: out, context };

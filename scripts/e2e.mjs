@@ -250,6 +250,19 @@ if (withParent) {
   check((await page.locator("ul.rel").innerText()).includes(withParent.t.name), "the parent lists its child");
 }
 
+// Every object link points at a table, and a namespace built from several folders says so.
+const unresolved = allDetails.flatMap(({ ns, d }) => d.tables.flatMap((t) =>
+  t.relations.filter((r) => r.direction === "out" && r.via === "object link" && !r.target).map((r) => `${ns}.${t.name} -> ${r.targetNs}.${r.targetName}`)));
+check(unresolved.length === 0, `object links without a target table: ${unresolved.join(", ")}`);
+const merged = allDetails.find(({ d }) => d.sources.length > 1);
+check(!!merged, "the model has a namespace built from several folders to test");
+if (merged) {
+  await page.goto(`${BASE}/${merged.ns}`, { waitUntil: "load" });
+  await page.waitForSelector("p.sub");
+  const sub = await page.locator("p.sub").innerText();
+  check(merged.d.sources.every((f) => sub.includes(`content/feature/${f}`)), `the overview of ${merged.ns} names its folders (${sub})`);
+}
+
 // Contexts: one box per diagram, different per table, one entry in the relation list.
 const ctxTables = allDetails.flatMap(({ ns, d }) => d.tables.filter((t) => t.relations.length).map((t) => ({ ns, t })));
 const richest = ctxTables.filter((x) => x.t.contexts.length).sort((a, b) => b.t.contexts.length - a.t.contexts.length)[0];

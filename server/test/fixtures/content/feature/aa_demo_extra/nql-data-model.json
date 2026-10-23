@@ -1,0 +1,65 @@
+{
+ "namespaces": [
+  {
+   "name": "demo",
+   "enumDataTypes": [
+    {
+     "name": "flavour",
+     "values": [
+      {
+       "label": "sweet",
+       "value": "s",
+       "description": "Sweet."
+      }
+     ]
+    }
+   ],
+   "objects": [
+    {
+     "name": "visitor",
+     "collectionName": "visitors",
+     "identifier": "name",
+     "lastSeen": "last_seen",
+     "fields": [
+      {
+       "name": "name",
+       "dataType": "string/string",
+       "documentation": {
+        "label": "Name",
+        "description": "Visitor name.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Visitor",
+      "description": "Someone who visits, defined in the extra folder.",
+      "tooltipSections": {}
+     }
+    }
+   ],
+   "timeseries": [
+    {
+     "name": "extra_visit",
+     "collectionName": "extra_visits",
+     "fields": [
+      {
+       "name": "taste",
+       "dataType": "enumeration/demo/flavour",
+       "documentation": {
+        "label": "Taste",
+        "description": "What it tasted like.",
+        "tooltipSections": {}
+       }
+      }
+     ],
+     "documentation": {
+      "label": "Extra visit",
+      "description": "A visit defined in the extra folder.",
+      "tooltipSections": {}
+     }
+    }
+   ]
+  }
+ ]
+}

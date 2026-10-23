@@ -18,7 +18,9 @@ function Overview({ ns }: { ns: string }) {
   return (
     <>
       <h1>{ns} namespace</h1>
-      <p className="sub">Source: data-platform.data-model-content / content/feature/{ns}</p>
+      <p className="sub">
+        Source: data-platform.data-model-content / {(detail.status === "ready" ? detail.value.sources : [ns]).map((s) => `content/feature/${s}`).join(", ")}
+      </p>
       {detail.status === "loading" && <p className="muted">Loading…</p>}
       {detail.status === "error" && <p className="err">{detail.message}</p>}
       {detail.status === "ready" && <OverviewBody detail={detail.value} />}

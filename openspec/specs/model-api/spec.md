@@ -108,3 +108,10 @@ The system SHALL report all contexts of a table as a single relation, whose expl
 #### Scenario: Table with three contexts
 - **WHEN** a table has three contexts
 - **THEN** its relations contain exactly one context relation
+
+### Requirement: Namespaces are listed once, with their source folders
+The system SHALL list each namespace once, and SHALL report in a namespace's detail the model folders it was built from.
+
+#### Scenario: Merged namespace
+- **WHEN** a namespace is built from two folders
+- **THEN** the namespace list contains it once and its detail names both folders

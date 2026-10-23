@@ -74,6 +74,12 @@
       {
        "dmUri": "context/mystery"
       }
+     ],
+     "objects": [
+      {
+       "namespace": "demo",
+       "name": "visitor"
+      }
      ]
     }
    ]

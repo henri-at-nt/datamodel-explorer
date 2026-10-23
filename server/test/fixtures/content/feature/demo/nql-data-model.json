@@ -277,7 +277,12 @@
       "tooltipSections": {}
      }
     }
-   ]
+   ],
+   "documentation": {
+    "label": "demo",
+    "description": "The demo namespace.",
+    "tooltipSections": {}
+   }
   }
  ]
 }

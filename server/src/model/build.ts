@@ -22,6 +22,7 @@ export function buildModel(raw: RawModel): Model {
   const namespaces: NamespaceDetail[] = raw.namespaces
     .map((r) => ({
       name: r.name,
+      sources: r.sources,
       ...buildTables(r.name, r.dm, r.sm, enumDef, contextOf),
       store: buildStoreGraph(r.dm, r.sm),
     }))

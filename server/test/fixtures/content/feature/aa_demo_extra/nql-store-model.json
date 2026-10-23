@@ -1,0 +1,31 @@
+{
+ "namespaces": [
+  {
+   "name": "demo",
+   "objects": [
+    {
+     "name": "visitor",
+     "primaryKeyColumnName": "visitor_id",
+     "tables": [
+      {
+       "name": "visitors_dict"
+      }
+     ],
+     "objectFieldMappings": []
+    }
+   ],
+   "timeseries": [
+    {
+     "name": "extra_visit",
+     "tables": [
+      {
+       "name": "extra_visits_v",
+       "timeResolution": "punctual"
+      }
+     ],
+     "timeseriesFieldMappings": []
+    }
+   ]
+  }
+ ]
+}

@@ -111,6 +111,8 @@ export interface StoreGraph {
 
 export interface NamespaceDetail {
   name: string;
+  /** The model folders the namespace was built from. */
+  sources: string[];
   tables: TableRec[];
   types: Record<string, TypeRec>;
   enums: Record<string, EnumRec>;

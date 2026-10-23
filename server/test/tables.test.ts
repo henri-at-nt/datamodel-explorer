@@ -6,8 +6,11 @@ const table = (key: string) => demo().tables.find((t) => t.key === key)!;
 
 describe("tables", () => {
   it("includes timeseries, objects, collections, config objects and linkages", () => {
+    // Ordered by kind; within a kind the namespace's main folder comes first, then the second folder
+    // (ts_extra_visit and obj_visitor).
     expect(demo().tables.map((t) => `${t.kind}:${t.key}`)).toEqual([
-      "timeseries:ts_visit", "timeseries:ts_ghost_event", "object:obj_person", "collection:col_person_gadgets",
+      "timeseries:ts_visit", "timeseries:ts_ghost_event", "timeseries:ts_extra_visit",
+      "object:obj_person", "collection:col_person_gadgets", "object:obj_visitor",
       "configObject:cfg_catalog", "configObject:cfg_shelf", "linkage:link_membership",
     ]);
   });
