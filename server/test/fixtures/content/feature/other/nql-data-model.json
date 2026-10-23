@@ -63,7 +63,18 @@
       "label": "Sighting",
       "description": "Something seen in a catalog.",
       "tooltipSections": {}
-     }
+     },
+     "contexts": [
+      {
+       "dmUri": "context/lighting"
+      },
+      {
+       "dmUri": "context/remote"
+      },
+      {
+       "dmUri": "context/mystery"
+      }
+     ]
     }
    ]
   }

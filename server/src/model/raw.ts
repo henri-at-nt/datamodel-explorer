@@ -13,6 +13,12 @@ export interface RawNamespace {
   sm: Raw;
 }
 
+export interface RawModel {
+  namespaces: RawNamespace[];
+  /** The shared context definitions (content/common), when present. */
+  context?: Raw;
+}
+
 const DATA_MODEL = "nql-data-model.json";
 const STORE_MODEL = "nql-store-model.json";
 
@@ -29,6 +35,8 @@ export function listModelFiles(contentDir: string): string[] {
       if (existsSync(path)) files.push(path);
     }
   }
+  const common = join(contentDir, "common", DATA_MODEL);
+  if (existsSync(common)) files.push(common);
   return files;
 }
 
@@ -46,7 +54,7 @@ export function fingerprintFiles(files: string[]): string {
 
 const readNamespace = (path: string): Raw => JSON.parse(readFileSync(path, "utf-8")).namespaces[0] ?? {};
 
-export function loadRaw(contentDir: string): RawNamespace[] {
+export function loadRaw(contentDir: string): RawModel {
   const feature = join(contentDir, "feature");
   const out: RawNamespace[] = [];
   for (const name of readdirSync(feature).sort()) {
@@ -55,5 +63,7 @@ export function loadRaw(contentDir: string): RawNamespace[] {
     const smPath = join(feature, name, STORE_MODEL);
     out.push({ name, dm: readNamespace(dmPath), sm: existsSync(smPath) ? readNamespace(smPath) : {} });
   }
-  return out;
+  const commonPath = join(contentDir, "common", DATA_MODEL);
+  const context = existsSync(commonPath) ? JSON.parse(readFileSync(commonPath, "utf-8")).context : undefined;
+  return { namespaces: out, context };
 }

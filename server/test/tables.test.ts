@@ -57,7 +57,7 @@ describe("tables", () => {
     const visit = table("ts_visit");
     expect(visit.relations.map((r) => `${r.direction}:${r.via}:${r.targetName}`)).toEqual([
       "out:structured field:weather", "out:object link:person", "out:object link:place", "out:object link:catalog",
-      "out:context:demo/season",
+      "out:context:context",
     ]);
     const person = table("obj_person");
     expect(person.relations.filter((r) => r.direction === "in").map((r) => r.target)).toEqual(["ts_visit", "link_membership"]);
@@ -89,6 +89,44 @@ describe("tables", () => {
     expect(place.relations).toEqual([
       expect.objectContaining({ direction: "in", via: "object link", target: "demo::ts_visit", targetName: "demo.visit" }),
     ]);
+  });
+
+  it("reports all contexts of a table as one relation that names them and their fields", () => {
+    const contextRelations = table("ts_visit").relations.filter((r) => r.via === "context");
+    expect(contextRelations).toHaveLength(1);
+    expect(contextRelations[0].text).toBe("Enriched by 2 contexts: region (country, zone); owner (entity)");
+  });
+
+  it("gives each table its own contexts", () => {
+    expect(table("ts_visit").contexts.map((c) => c.name)).toEqual(["region", "owner"]);
+    const sighting = fixtureModel().byName.get("other")!.tables.find((t) => t.key === "ts_sighting")!;
+    expect(sighting.contexts.map((c) => c.name)).toEqual(["lighting", "remote", "mystery"]);
+  });
+
+  it("reports a plain context with its fields and a key field first", () => {
+    expect(table("ts_visit").contexts).toEqual([
+      { name: "region", composite: false, groups: [{ name: "region", fields: ["country", "zone"] }] },
+      { name: "owner", composite: false, groups: [{ name: "owner", fields: ["entity"] }] },
+    ]);
+  });
+
+  it("reports a composite context with each of its groups", () => {
+    const sighting = fixtureModel().byName.get("other")!.tables.find((t) => t.key === "ts_sighting")!;
+    expect(sighting.contexts[1]).toEqual({
+      name: "remote", composite: true,
+      groups: [{ name: "region", fields: ["country", "zone"] }, { name: "owner", fields: ["entity"] }],
+    });
+  });
+
+  it("still reports a context the shared definitions do not define, without fields", () => {
+    const sighting = fixtureModel().byName.get("other")!.tables.find((t) => t.key === "ts_sighting")!;
+    expect(sighting.contexts[2]).toEqual({ name: "mystery", composite: false, groups: [] });
+    expect(sighting.relations.find((r) => r.via === "context")!.text).toContain("mystery");
+  });
+
+  it("reports no context relation for a table without contexts", () => {
+    expect(table("ts_ghost_event").contexts).toEqual([]);
+    expect(table("ts_ghost_event").relations.some((r) => r.via === "context")).toBe(false);
   });
 
   it("resolves object links into another namespace", () => {

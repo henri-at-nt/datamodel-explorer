@@ -1,5 +1,5 @@
 import type {
-  EnumRec, FieldRec, Relation, StoreColumn, StoreTableRec, StructuredRec, TableKind, TableRec, TypeRec,
+  ContextRec, EnumRec, FieldRec, Relation, StoreColumn, StoreTableRec, StructuredRec, TableKind, TableRec, TypeRec,
 } from "@dme/shared";
 import type { Raw } from "./raw";
 
@@ -36,6 +36,7 @@ export function buildTables(
   dm: Raw,
   sm: Raw,
   enumDef: (ns: string, name: string) => Raw | undefined,
+  contextOf: (dmUri: string) => ContextRec,
 ): TablesResult {
   const tsTypes = byName(dm.timeseriesTypes);
   const types = byName(dm.types);
@@ -144,7 +145,7 @@ export function buildTables(
         collectionTables.push({
           key: collectionKey, kind: "collection", name: `${name}.${c.name}`, collection: c.name,
           label: doc((tkind === "timeseriesType" ? tsTypes : tkind === "jsonType" ? jsonTypes : types).get(c.typeName)).label || c.typeName,
-          description: elementType.description, parent: parentKey, meta: {},
+          description: elementType.description, parent: parentKey, contexts: [], meta: {},
           fields: elementType.fields.map((f) => ({ ...f })), structured: [],
           relations: [{
             direction: "in", via: "collection", label: c.name, target: parentKey, targetName: name,
@@ -176,13 +177,17 @@ export function buildTables(
         });
       }
     }
-    if (kind === "timeseries") {
-      for (const c of t.contexts ?? []) {
-        relations.push({
-          direction: "out", via: "context", label: c.dmUri, target: null, targetName: c.dmUri,
-          text: `Enriched by context \`${c.dmUri}\``,
-        });
-      }
+    // All contexts of a table are one relation; what each offers is on the table's `contexts`.
+    const contexts: ContextRec[] = kind === "timeseries" ? (t.contexts ?? []).map((c: Raw) => contextOf(c.dmUri)) : [];
+    if (contexts.length) {
+      const describe = (c: ContextRec) =>
+        c.groups.length === 0 ? c.name
+          : c.composite ? `${c.name} (${c.groups.map((g) => `${g.name}: ${g.fields.join(", ")}`).join("; ")})`
+            : `${c.name} (${c.groups[0].fields.join(", ")})`;
+      relations.push({
+        direction: "out", via: "context", label: "context", target: null, targetName: "context",
+        text: `Enriched by ${contexts.length === 1 ? "one context" : `${contexts.length} contexts`}: ${contexts.map(describe).join("; ")}`,
+      });
     }
 
     if (kind === "configObject" && t.parentObjectName) {
@@ -227,7 +232,7 @@ export function buildTables(
     tables.push({
       key: KEY_PREFIX[kind] + name, kind, name, collection: t.collectionName ?? "",
       label: doc(t).label ?? name, description: doc(t).description ?? "",
-      meta, fields, structured, relations, store,
+      contexts, meta, fields, structured, relations, store,
     });
     tables.push(...collectionTables); // collections follow their parent
   }

@@ -239,7 +239,10 @@
      ],
      "contexts": [
       {
-       "dmUri": "demo/season"
+       "dmUri": "context/region"
+      },
+      {
+       "dmUri": "context/owner"
       }
      ],
      "documentation": {

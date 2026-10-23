@@ -1,7 +1,9 @@
-import { appendFileSync, utimesSync } from "node:fs";
+import { appendFileSync, rmSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ModelCache } from "../src/model/cache";
+import { buildModel } from "../src/model/build";
+import { loadRaw } from "../src/model/raw";
 import { copyFixture } from "./helpers";
 
 const demoFile = (dir: string) => join(dir, "feature/demo/nql-data-model.json");
@@ -44,6 +46,24 @@ describe("model cache", () => {
     utimesSync(demoFile(dir), later, later);
     advance(61_000);
     expect(cache.get()).toBe(first);
+  });
+
+  it("rebuilds when the shared context definitions change", () => {
+    const { dir, cache, advance } = setup();
+    const first = cache.get();
+    appendFileSync(join(dir, "common/nql-data-model.json"), " ");
+    advance(61_000);
+    expect(cache.get()).not.toBe(first);
+  });
+
+  it("still reports the contexts of a table, without fields, when the definitions are missing", () => {
+    const dir = copyFixture();
+    rmSync(join(dir, "common"), { recursive: true });
+    const visit = buildModel(loadRaw(dir)).byName.get("demo")!.tables.find((t) => t.key === "ts_visit")!;
+    expect(visit.contexts).toEqual([
+      { name: "region", composite: false, groups: [] },
+      { name: "owner", composite: false, groups: [] },
+    ]);
   });
 
   it("reload rebuilds regardless of the interval", () => {

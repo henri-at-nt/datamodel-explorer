@@ -250,6 +250,38 @@ if (withParent) {
   check((await page.locator("ul.rel").innerText()).includes(withParent.t.name), "the parent lists its child");
 }
 
+// Contexts: one box per diagram, different per table, one entry in the relation list.
+const ctxTables = allDetails.flatMap(({ ns, d }) => d.tables.filter((t) => t.relations.length).map((t) => ({ ns, t })));
+const richest = ctxTables.filter((x) => x.t.contexts.length).sort((a, b) => b.t.contexts.length - a.t.contexts.length)[0];
+const sparsest = ctxTables.filter((x) => x.t.contexts.length).sort((a, b) => a.t.contexts.length - b.t.contexts.length)[0];
+const none = ctxTables.find((x) => x.t.contexts.length === 0);
+const contextBoxText = async (x) => {
+  await page.goto(`${BASE}/${x.ns}/${x.t.name}`, { waitUntil: "load" });
+  await page.waitForSelector(".reldiagram svg");
+  return (await page.locator(".reldiagram .nodeLabel").allInnerTexts()).filter((t) => t.startsWith("Context"));
+};
+if (richest) {
+  const boxes = await contextBoxText(richest);
+  check(boxes.length === 1, `${richest.t.name}: exactly one context box (got ${boxes.length})`);
+  for (const c of richest.t.contexts) check(boxes[0]?.includes(c.name), `${richest.t.name}: the context box names ${c.name}`);
+  const someField = richest.t.contexts.flatMap((c) => c.groups.flatMap((g) => g.fields))[0];
+  check(!someField || boxes[0]?.includes(someField), `${richest.t.name}: the context box lists fields (${someField})`);
+  const rights = await page.locator(".reldiagram .node").evaluateAll((els) =>
+    els.map((e) => ({ right: e.getBoundingClientRect().right, context: (e.textContent || "").startsWith("Context") })));
+  const contextRight = rights.find((r) => r.context)?.right ?? 0;
+  const otherRight = Math.max(...rights.filter((r) => !r.context).map((r) => r.right));
+  check(contextRight >= otherRight - 2, `${richest.t.name}: the context box is the rightmost box`);
+  await page.locator("summary", { hasText: "As list" }).click();
+  const viaTexts = await page.locator('details:has(> summary:has-text("As list")) ul.rel .via').allInnerTexts();
+  check(viaTexts.filter((v) => v === "context").length === 1, `${richest.t.name}: one context entry in the list`);
+}
+if (richest && sparsest && JSON.stringify(richest.t.contexts.map((c) => c.name)) !== JSON.stringify(sparsest.t.contexts.map((c) => c.name))) {
+  const boxes = await contextBoxText(sparsest);
+  const missing = richest.t.contexts.map((c) => c.name).filter((n) => !sparsest.t.contexts.some((c) => c.name === n));
+  check(missing.every((n) => !boxes[0]?.includes(n)), `${sparsest.t.name}: its context box leaves out ${missing.join(", ")}`);
+}
+if (none) check((await contextBoxText(none)).length === 0, `${none.t.name}: no context box without contexts`);
+
 // The diagram draws at most twelve incoming relations and summarises the rest.
 const busiest = allDetails.flatMap(({ ns, d }) => d.tables.map((t) => ({ ns, t, n: t.relations.filter((r) => r.direction === "in").length }))).sort((a, b) => b.n - a.n)[0];
 if (busiest.n > 12) {

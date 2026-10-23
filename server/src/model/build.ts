@@ -1,7 +1,8 @@
 import type { NamespaceDetail, NamespaceSummary, Relation, SearchHit, TableRec } from "@dme/shared";
 import { buildStoreGraph } from "./store";
 import { buildTables } from "./tables";
-import type { Raw, RawNamespace } from "./raw";
+import { makeContextResolver } from "./contexts";
+import type { Raw, RawModel } from "./raw";
 
 export interface Model {
   namespaces: NamespaceDetail[];
@@ -11,16 +12,17 @@ export interface Model {
 }
 
 /** Builds every namespace, then resolves object links that point into other namespaces. */
-export function buildModel(raw: RawNamespace[]): Model {
+export function buildModel(raw: RawModel): Model {
   const enumFiles = new Map<string, Map<string, Raw>>(
-    raw.map((r) => [r.name, new Map<string, Raw>((r.dm.enumDataTypes ?? []).map((e: Raw) => [e.name, e]))]),
+    raw.namespaces.map((r) => [r.name, new Map<string, Raw>((r.dm.enumDataTypes ?? []).map((e: Raw) => [e.name, e]))]),
   );
   const enumDef = (ns: string, name: string) => enumFiles.get(ns)?.get(name);
 
-  const namespaces: NamespaceDetail[] = raw
+  const contextOf = makeContextResolver(raw.context);
+  const namespaces: NamespaceDetail[] = raw.namespaces
     .map((r) => ({
       name: r.name,
-      ...buildTables(r.name, r.dm, r.sm, enumDef),
+      ...buildTables(r.name, r.dm, r.sm, enumDef, contextOf),
       store: buildStoreGraph(r.dm, r.sm),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));

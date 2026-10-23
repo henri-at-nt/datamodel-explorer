@@ -53,6 +53,20 @@ export interface StoreColumn {
   proto: string;
 }
 
+/** One group of a context, with the names of the fields it offers. */
+export interface ContextGroup {
+  name: string;
+  fields: string[];
+}
+
+/** A context a table is enriched with (operating system, location, ...) and what it offers. */
+export interface ContextRec {
+  name: string;
+  /** True when the context is made of several groups (for example the VDI client). */
+  composite: boolean;
+  groups: ContextGroup[];
+}
+
 export interface TableRec {
   key: string;
   kind: TableKind;
@@ -62,6 +76,8 @@ export interface TableRec {
   description: string;
   /** For a collection: the key of the object it is a JSON array on. */
   parent?: string;
+  /** The contexts this table is enriched with; each table has its own set. */
+  contexts: ContextRec[];
   meta: Record<string, string>;
   fields: FieldRec[];
   structured: StructuredRec[];

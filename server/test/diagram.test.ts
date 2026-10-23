@@ -1,4 +1,4 @@
-import { MAX_INCOMING_IN_DIAGRAM, relationFlowSource, type Relation, type TableRec } from "@dme/shared";
+import { MAX_INCOMING_IN_DIAGRAM, relationFlowSource, type ContextRec, type Relation, type TableRec } from "@dme/shared";
 import { describe, expect, it } from "vitest";
 
 const incoming = (n: number): Relation[] =>
@@ -8,7 +8,7 @@ const incoming = (n: number): Relation[] =>
 
 const table = (relations: Relation[]): TableRec => ({
   key: "obj_hub", kind: "object", name: "hub", collection: "hubs", label: "Hub", description: "",
-  meta: {}, fields: [], structured: [], relations, store: { topic: null, tables: [], columns: [] },
+  contexts: [], meta: {}, fields: [], structured: [], relations, store: { topic: null, tables: [], columns: [] },
 });
 
 const source = (n: number) => relationFlowSource(table(incoming(n)), () => undefined);
@@ -38,6 +38,44 @@ describe("relation diagram", () => {
     expect(text).toContain('"Event (web)"');
     expect(text).toContain('"Event (execution)"');
     expect(text).toMatch(/\["Event"\]/); // same namespace: title alone
+  });
+
+  describe("contexts", () => {
+    const contexts: ContextRec[] = [
+      { name: "location", composite: false, groups: [{ name: "location", fields: ["state", "country"] }] },
+      { name: "vdi_client", composite: true, groups: [{ name: "operating_system", fields: ["name", "platform"] }, { name: "organization", fields: ["entity"] }] },
+    ];
+    const withContexts = (extra: Relation[] = []) => ({ ...table(extra), contexts });
+    const text = (t: TableRec) => relationFlowSource(t, () => undefined);
+    const out = (name: string): Relation => ({ direction: "out", via: "object link", label: name, target: null, targetName: name, text: "" });
+
+    it("draws one box and one dotted line for all contexts", () => {
+      const src = text(withContexts());
+      expect(src.split("\n").filter((l) => l.includes("-.->"))).toHaveLength(1);
+      expect(src.split("\n").filter((l) => l.includes("<b>Context</b>"))).toHaveLength(1);
+    });
+
+    it("lists each context with its fields, and the groups of a composite one", () => {
+      const src = text(withContexts());
+      expect(src).toContain("<b>location</b>: state, country");
+      expect(src).toContain("<b>vdi_client</b><br/>↳ operating_system: name, platform<br/>↳ organization: entity");
+    });
+
+    it("draws the box after the other outgoing boxes, so it sits at the right", () => {
+      const lines = text(withContexts([out("a"), out("b")])).split("\n");
+      const index = (needle: string) => lines.findIndex((l) => l.includes(needle));
+      expect(index("<b>Context</b>")).toBeGreaterThan(index('"a"'));
+      expect(index("<b>Context</b>")).toBeGreaterThan(index('"b"'));
+    });
+
+    it("ignores context relations in the list, since the box replaces them", () => {
+      const ctxRel: Relation = { direction: "out", via: "context", label: "context", target: null, targetName: "context", text: "" };
+      expect(text(withContexts([ctxRel])).split("\n").filter((l) => l.includes("-.->"))).toHaveLength(1);
+    });
+
+    it("draws no box for a table without contexts", () => {
+      expect(text(table([out("a")]))).not.toContain("Context");
+    });
   });
 
   it("does not cap outgoing relations", () => {

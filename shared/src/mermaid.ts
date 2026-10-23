@@ -1,4 +1,4 @@
-import type { StoreGraph, TableRec } from "./types";
+import type { ContextRec, StoreGraph, TableRec } from "./types";
 
 const quote = (s: unknown) => String(s ?? "").replace(/"/g, "'");
 
@@ -15,6 +15,24 @@ export function storeErSource(store: StoreGraph): string {
   for (const e of store.entities) out.push(`    ${e.id}["${quote(e.title)}"]`);
   for (const r of store.relations) out.push(`    ${r.from} ||--o{ ${r.to} : "${quote(r.label)}"`);
   return out.join("\n");
+}
+
+const plain = (s: string) => s.replace(/[<>"&]/g, "");
+
+/** The label of the context box: each context the table has, with the fields it offers. */
+export function contextLabel(contexts: ContextRec[]): string {
+  const lines = ["<b>Context</b>"];
+  for (const c of contexts) {
+    const fields = (names: string[]) => names.map(plain).join(", ");
+    if (!c.composite) {
+      const f = c.groups[0]?.fields ?? [];
+      lines.push(`<b>${plain(c.name)}</b>${f.length ? `: ${fields(f)}` : ""}`);
+    } else {
+      lines.push(`<b>${plain(c.name)}</b>`);
+      for (const g of c.groups) lines.push(`↳ ${plain(g.name)}${g.fields.length ? `: ${fields(g.fields)}` : ""}`);
+    }
+  }
+  return lines.join("<br/>");
 }
 
 /** The diagram draws this many incoming relations; the rest are summarised in one box (the list shows all). */
@@ -44,6 +62,7 @@ export function relationFlowSource(
   let incomingDrawn = 0;
   let incomingSkipped = 0;
   t.relations.forEach((r, i) => {
+    if (r.via === "context") return; // all contexts are one box, drawn last
     if (r.direction === "in" && ++incomingDrawn > MAX_INCOMING_IN_DIAGRAM) {
       incomingSkipped++;
       return;
@@ -71,9 +90,16 @@ export function relationFlowSource(
 
     const edge = quote(r.via === "structured field" || r.via === "collection" ? r.label : r.via);
     if (r.direction === "in") lines.push(`    ${id} -->|"${edge}"| ${center}`);
-    else if (r.via === "context") lines.push(`    ${center} -.->|"${edge}"| ${id}`);
     else lines.push(`    ${center} -->|"${edge}"| ${id}`);
   });
+
+  // One box for every context of the table. It is declared after the other outgoing boxes, so the layout
+  // puts it at the right of them.
+  if (t.contexts.length) {
+    const ctx = nid("context");
+    declare(ctx, contextLabel(t.contexts), "table");
+    lines.push(`    ${center} -.->|"context"| ${ctx}`);
+  }
 
   if (incomingSkipped > 0) {
     const more = nid("more_incoming");
@@ -83,5 +109,9 @@ export function relationFlowSource(
 
   lines.push("    classDef focus fill:#3b82f6,color:#fff,stroke:#1d4ed8");
   lines.push(`    class ${center} focus`);
+  if (t.contexts.length) {
+    lines.push("    classDef ctx fill:#f8fafc,stroke:#94a3b8,color:#1d2330,text-align:left");
+    lines.push(`    class ${nid("context")} ctx`);
+  }
   return lines.join("\n");
 }

@@ -1,0 +1,46 @@
+{
+ "version": 1,
+ "context": {
+  "name": "context",
+  "dimensionTypes": [
+   {
+    "name": "remote",
+    "dimensionGroups": [
+     "region",
+     "owner"
+    ]
+   }
+  ],
+  "dimensionGroups": [
+   {
+    "name": "region",
+    "fields": [
+     {
+      "name": "country",
+      "dataType": "string/string"
+     },
+     {
+      "name": "zone",
+      "dataType": "string/string"
+     }
+    ]
+   },
+   {
+    "name": "lighting",
+    "fields": [
+     {
+      "name": "level",
+      "dataType": "string/string"
+     }
+    ]
+   },
+   {
+    "name": "owner",
+    "keyField": {
+     "name": "entity",
+     "visibilityLevel": "USER"
+    }
+   }
+  ]
+ }
+}
