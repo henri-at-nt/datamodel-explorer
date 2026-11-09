@@ -27,6 +27,7 @@ model files and rebuilds if they changed, so a `git pull` of the model clone sho
 
 ```bash
 npm run dev        # API on :3000, web app with hot reload on http://localhost:5173
+npm run check:shutdown   # starts the dev server and stops it every way a host might (needs ports 3000 and 5173 free)
 npm run typecheck
 npm test           # server unit tests, on a made-up model
 npm run build && npm start   # then, in another terminal:
@@ -35,6 +36,9 @@ npm run e2e        # opens every namespace and table in a headless Chrome
 
 `npm run e2e` uses `playwright-core` and needs a Chrome: set `BROWSER_PATH`, or let it find a Chrome for Testing in the
 Playwright cache. `E2E_URL` points it at a server other than `http://127.0.0.1:3000`.
+
+`npm run dev` and `npm start` stop everything they started (servers and file watchers) on Ctrl-C, terminate, hangup and quit signals, and when the
+process that started them is gone, so they do not outlive a closing terminal or app, or hold up a shutdown.
 
 ## Layout
 
