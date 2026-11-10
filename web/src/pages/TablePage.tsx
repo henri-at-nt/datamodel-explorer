@@ -1,4 +1,4 @@
-import { titleOf, type NamespaceDetail, type NamespaceSummary, type TableRec, type TypeRec } from "@dme/shared";
+import { titleOf, type NamespaceDetail, type FieldRec, type NamespaceSummary, type TableRec, type TypeRec } from "@dme/shared";
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { NotFound } from "../App";
@@ -16,6 +16,26 @@ const FILTER_LABELS: Record<Exclude<Filter, null>, string> = {
 const KIND_LABELS: Record<TableRec["kind"], string> = {
   timeseries: "Timeseries", object: "Object", configObject: "Config object", linkage: "Linkage", collection: "Collection",
 };
+
+function FieldDocs({ f }: { f: FieldRec }) {
+  return (
+    <>
+      {f.deprecation && (
+        <div className="deprecated">
+          <span className="badge deprecated-badge">Deprecated</span>{" "}
+          {f.deprecation.reason}{f.deprecation.since && <span className="muted"> (since {f.deprecation.since})</span>}
+        </div>
+      )}
+      {(f.details || f.requirements) && (
+        <details className="more">
+          <summary>More</summary>
+          {f.details && <p>{f.details}</p>}
+          {f.requirements && <p className="muted">{f.requirements}</p>}
+        </details>
+      )}
+    </>
+  );
+}
 
 const dash = (s: ReactNode) => (s === undefined || s === null || s === "" ? <span className="muted">—</span> : s);
 
@@ -109,7 +129,7 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
                     <td className="type"><code>{f.type}</code></td>
                     <td>{dash(f.platforms)}</td>
                     {showJsonPath && <td>{f.jsonPath ? <code>{f.jsonPath}</code> : dash("")}</td>}
-                    <td className="desc">{dash(f.description)}</td>
+                    <td className="desc">{dash(f.description)}<FieldDocs f={f} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -226,6 +246,7 @@ function TypeDetails({ type, label }: { type: TypeRec; label: string }) {
               {f.type}{f.jsonPath && <> · JSON path <code>{f.jsonPath}</code></>}
             </span>
             {f.description && <> — {f.description}</>}
+            <FieldDocs f={f} />
           </li>
         ))}
         {type.structured.map((s) => <li key={`nested:${s.name}`}>nested <code>{s.name}</code> → {s.typeName}</li>)}

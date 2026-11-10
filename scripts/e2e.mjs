@@ -195,6 +195,46 @@ const resolveRel = (nsName, r) => {
   return { ns: tns, table: tableOf(tns, key) };
 };
 
+// Field documentation: details, requirements and deprecation reach the page.
+{
+  let withDetails = null, deprecated = null, plain = null;
+  for (const { ns, d } of allDetails) {
+    for (const t of d.tables) {
+      if (t.kind === "collection") continue;
+      const f = (x) => t.fields.find(x);
+      if (!withDetails && f((x) => x.details && x.requirements)) withDetails = { ns, t, f: f((x) => x.details && x.requirements) };
+      if (!deprecated && f((x) => x.deprecation)) deprecated = { ns, t, f: f((x) => x.deprecation) };
+      if (!plain && f((x) => x.role === "field" && !x.details && !x.requirements && !x.deprecation)) plain = { ns, t, f: f((x) => x.role === "field" && !x.details && !x.requirements && !x.deprecation) };
+    }
+  }
+  check(!!withDetails && !!deprecated && !!plain, "the model has fields with details, with deprecation and with neither");
+  const rowOf = (x) => page.locator("table.fields").first().locator("tbody tr", { has: page.locator(`td:first-child code:text-is("${x.f.name}")`) }).first();
+  if (withDetails) {
+    await page.goto(`${BASE}/${withDetails.ns}/${withDetails.t.name}`, { waitUntil: "load" });
+    await page.waitForSelector("table.fields");
+    const row = rowOf(withDetails);
+    const more = row.locator("details.more");
+    check((await more.count()) === 1, `${withDetails.t.name}.${withDetails.f.name}: has an expandable More section`);
+    check(!(await more.locator("p").first().isVisible()), "details stay hidden until expanded");
+    await more.locator("summary").click();
+    const text = await more.innerText();
+    check(text.includes(withDetails.f.details) && text.includes(withDetails.f.requirements), "More shows the details and the requirements");
+  }
+  if (deprecated) {
+    await page.goto(`${BASE}/${deprecated.ns}/${deprecated.t.name}`, { waitUntil: "load" });
+    await page.waitForSelector("table.fields");
+    const row = rowOf(deprecated);
+    check((await row.locator(".deprecated-badge").innerText()) === "Deprecated", `${deprecated.t.name}.${deprecated.f.name}: shows the Deprecated marker`);
+    check((await row.locator(".deprecated").innerText()).includes(deprecated.f.deprecation.reason), "the deprecation reason is shown");
+  }
+  if (plain) {
+    await page.goto(`${BASE}/${plain.ns}/${plain.t.name}`, { waitUntil: "load" });
+    await page.waitForSelector("table.fields");
+    const row = rowOf(plain);
+    check((await row.locator("details.more, .deprecated").count()) === 0, `${plain.t.name}.${plain.f.name}: a plain field shows no extras`);
+  }
+}
+
 // A link from a timeseries to a configured object appears on both pages.
 let configLink = null;
 for (const { ns, d } of allDetails) {

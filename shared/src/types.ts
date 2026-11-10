@@ -10,6 +10,10 @@ export interface FieldRec {
   platforms: string;
   role: "field" | "metric";
   jsonPath?: string;
+  /** From the model's tooltip sections; absent when the model has none. */
+  details?: string;
+  requirements?: string;
+  deprecation?: { reason: string; since?: string };
 }
 
 export interface TypeRec {

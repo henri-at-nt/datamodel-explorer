@@ -42,6 +42,15 @@ describe("tables", () => {
     expect(visit.fields[0]).toMatchObject({ label: "Reason", description: "Why the visit happened.", platforms: "all" });
   });
 
+  it("carries details, requirements and deprecation only where the model has them", () => {
+    const visit = table("ts_visit");
+    expect(visit.fields[0]).toMatchObject({ details: "Free text chosen at the desk.", requirements: "Requires app version 2.0" });
+    expect(visit.fields[0]).not.toHaveProperty("deprecation");
+    expect(visit.fields[1]).not.toHaveProperty("details");
+    expect(visit.fields[1]).not.toHaveProperty("requirements");
+    expect(demo().types["type_ts_weather"].fields[0].deprecation).toEqual({ reason: "Use feels_like instead.", since: "3.1" });
+  });
+
   it("includes the metrics of a structured type", () => {
     const type = demo().types["type_ts_weather"];
     expect(type.fields).toHaveLength(1);

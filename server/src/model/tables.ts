@@ -7,6 +7,8 @@ const doc = (o?: Raw): Raw => o?.documentation || {};
 
 function fieldRec(f: Raw, role: "field" | "metric"): FieldRec {
   const d = doc(f);
+  const tip = d.tooltipSections ?? {};
+  const dep = d.deprecationInfo;
   return {
     name: f.name,
     type: f.dataType ?? "",
@@ -15,6 +17,9 @@ function fieldRec(f: Raw, role: "field" | "metric"): FieldRec {
     platforms: f.platforms ?? "",
     role,
     ...(f.jsonPath ? { jsonPath: f.jsonPath } : {}),
+    ...(tip.details ? { details: tip.details } : {}),
+    ...(tip.requirements ? { requirements: tip.requirements } : {}),
+    ...(dep ? { deprecation: { reason: dep.reason ?? "", ...(dep.since ? { since: String(dep.since) } : {}) } } : {}),
   };
 }
 

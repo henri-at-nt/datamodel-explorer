@@ -105,6 +105,10 @@ details ul { padding-left: 20px; }
 pre { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow: auto; font-size: 12px; max-height: 50vh; }
 .err { color: var(--err); }
 .muted { color: var(--muted); }
+.deprecated { margin-top: 4px; font-size: 13px; }
+.deprecated-badge { border-color: #b45309; color: #b45309; margin-left: 0; }
+details.more { margin-top: 4px; }
+details.more p { margin: 4px 0; max-width: 70ch; }
 .ns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
 .ns-grid a { display: block; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: inherit; text-decoration: none; }
 .ns-grid a:hover { border-color: var(--nav-active); }

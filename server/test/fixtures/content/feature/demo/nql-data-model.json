@@ -29,7 +29,11 @@
        "documentation": {
         "label": "Temperature",
         "description": "Degrees at the time of the visit.",
-        "tooltipSections": {}
+        "tooltipSections": {},
+        "deprecationInfo": {
+         "reason": "Use feels_like instead.",
+         "since": "3.1"
+        }
        }
       }
      ],
@@ -182,7 +186,10 @@
        "documentation": {
         "label": "Reason",
         "description": "Why the visit happened.",
-        "tooltipSections": {}
+        "tooltipSections": {
+         "details": "Free text chosen at the desk.",
+         "requirements": "Requires app version 2.0"
+        }
        }
       },
       {
