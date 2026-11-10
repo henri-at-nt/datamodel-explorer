@@ -214,11 +214,11 @@ const resolveRel = (nsName, r) => {
     await page.waitForSelector("table.fields");
     const row = rowOf(withDetails);
     const more = row.locator("details.more");
-    check((await more.count()) === 1, `${withDetails.t.name}.${withDetails.f.name}: has an expandable More section`);
+    check((await more.count()) === 1, `${withDetails.t.name}.${withDetails.f.name}: has an expandable Details section`);
     check(!(await more.locator("p").first().isVisible()), "details stay hidden until expanded");
     await more.locator("summary").click();
     const text = await more.innerText();
-    check(text.includes(withDetails.f.details) && text.includes(withDetails.f.requirements), "More shows the details and the requirements");
+    check(text.includes(withDetails.f.details) && text.includes(withDetails.f.requirements), "Details shows the details and the requirements");
   }
   if (deprecated) {
     await page.goto(`${BASE}/${deprecated.ns}/${deprecated.t.name}`, { waitUntil: "load" });

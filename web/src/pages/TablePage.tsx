@@ -17,20 +17,26 @@ const KIND_LABELS: Record<TableRec["kind"], string> = {
   timeseries: "Timeseries", object: "Object", configObject: "Config object", linkage: "Linkage", collection: "Collection",
 };
 
+/** The model writes line breaks as a literal <br>; show them as line breaks. */
+function Text({ children }: { children: string }) {
+  const parts = children.split(/<br\s*\/?>/i).map((x) => x.trim()).filter(Boolean);
+  return <>{parts.map((x, i) => <span key={i}>{i > 0 && <br />}{x}</span>)}</>;
+}
+
 function FieldDocs({ f }: { f: FieldRec }) {
   return (
     <>
       {f.deprecation && (
         <div className="deprecated">
           <span className="badge deprecated-badge">Deprecated</span>{" "}
-          {f.deprecation.reason}{f.deprecation.since && <span className="muted"> (since {f.deprecation.since})</span>}
+          <Text>{f.deprecation.reason}</Text>{f.deprecation.since && <span className="muted"> (since {f.deprecation.since})</span>}
         </div>
       )}
       {(f.details || f.requirements) && (
         <details className="more">
-          <summary>More</summary>
-          {f.details && <p>{f.details}</p>}
-          {f.requirements && <p className="muted">{f.requirements}</p>}
+          <summary>Details</summary>
+          {f.details && <p><Text>{f.details}</Text></p>}
+          {f.requirements && <p className="muted"><Text>{f.requirements}</Text></p>}
         </details>
       )}
     </>
@@ -98,7 +104,7 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
           : <> · collection <code>{t.collection}</code></>}
         {metaParts.map((m, i) => <span key={i}> · {m}</span>)}
       </p>
-      <p>{t.description || <span className="muted">No description in the model.</span>}</p>
+      <p>{t.description ? <Text>{t.description}</Text> : <span className="muted">No description in the model.</span>}</p>
 
       <div className="stats">
         {card("fields", fieldCount, "fields")}
@@ -129,7 +135,7 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
                     <td className="type"><code>{f.type}</code></td>
                     <td>{dash(f.platforms)}</td>
                     {showJsonPath && <td>{f.jsonPath ? <code>{f.jsonPath}</code> : dash("")}</td>}
-                    <td className="desc">{dash(f.description)}<FieldDocs f={f} /></td>
+                    <td className="desc">{f.description ? <Text>{f.description}</Text> : dash("")}<FieldDocs f={f} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -146,7 +152,7 @@ function TableView({ ns, table: t, detail, summaries }: { ns: string; table: Tab
               <li key={s.name}>
                 <code>{s.name}</code> → {s.typeName}{" "}
                 <span className="muted">({s.collection ? "JSON array of " : ""}{s.targetKind})</span>
-                {s.description && <> — {s.description}</>}
+                {s.description && <> — <Text>{s.description}</Text></>}
                 {s.target && detail.types[s.target] && <TypeDetails type={detail.types[s.target]} label={s.typeName} />}
               </li>
             ))}
@@ -245,7 +251,7 @@ function TypeDetails({ type, label }: { type: TypeRec; label: string }) {
             <span className="muted">
               {f.type}{f.jsonPath && <> · JSON path <code>{f.jsonPath}</code></>}
             </span>
-            {f.description && <> — {f.description}</>}
+            {f.description && <> — <Text>{f.description}</Text></>}
             <FieldDocs f={f} />
           </li>
         ))}
@@ -265,7 +271,7 @@ function EnumDetails({ typeName, detail }: { typeName: string; detail: Namespace
       <summary><code>{typeName}</code> ({e.values.length} values)</summary>
       <ul>
         {e.values.map((v) => (
-          <li key={v.label}><code>{v.label}</code> = {v.value}{v.description && <> — {v.description}</>}</li>
+          <li key={v.label}><code>{v.label}</code> = {v.value}{v.description && <> — <Text>{v.description}</Text></>}</li>
         ))}
       </ul>
     </details>
